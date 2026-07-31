@@ -1,0 +1,2 @@
+Add Shortcut to Desktop|feea9a6c-2aa0-4d6b-80be-a996dc76a915|{DRIVE}\xmenu\etc\installShortcut.ps1
+Settings|8c208bc7-3002-4106-b42c-a5fb30f09213|{DRIVE}\Xmenu\etc\settings.ps1

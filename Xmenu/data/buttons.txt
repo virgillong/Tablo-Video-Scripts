@@ -1,0 +1,5 @@
+Rename Tablo Video Directories|60cf5438-afe9-4261-8ded-16968110c45c|{DRIVE}\Xmenu\etc\rename.ps1
+MCEBuddy ts > mp4|caee909b-6b0a-449c-8baa-26c3bfa3b4ac|{DRIVE}\Xmenu\etc\convert-mcebuddy.ps1
+FFmpeg  ts > mp4|de2fcee6-6a69-43e4-b4ce-4bdea3885da1|{DRIVE}\Xmenu\etc\VideoJoin.ps1
+FFmpeg/Handbrake Re-encode mp4 > mp4|9a48567b-fcf4-4d22-be9f-176e309a17fc|{DRIVE}\Xmenu\etc\videoEncode.ps1
+FFmpeg Remux  mkv > mp4|54e44dac-c6f9-48b1-8cdd-e27964c856fa|{DRIVE}\Xmenu\etc\ffmpegCopy.ps1|
