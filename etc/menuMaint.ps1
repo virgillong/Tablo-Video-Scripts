@@ -149,7 +149,7 @@ function Create-EntryForm($title, $selectedItem = $null) {
                 $btn  = $this
                 $refs = $btn.Tag
 
-                F = $refs.textbox
+		$txtRef = $refs.textbox
                 $chkRef = $refs.checkbox
 
                 if ($refs.isFile) {

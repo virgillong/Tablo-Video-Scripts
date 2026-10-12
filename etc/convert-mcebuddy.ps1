@@ -30,6 +30,42 @@ Import-Module (Join-Path $rootDir "etc\includes\alert.psm1") -Force
 Import-Module (Join-Path $rootDir "etc\includes\settings.psm1") -Force 
 Import-Module (Join-Path $rootDir "etc\includes\addinputrow.psm1") -Force
 
+$settings = Import-Settings
+
+if ($settings) {
+    $global:MCEBuddyCLI		= $settings.MCEBuddyCLI 
+    $mceBuddyConfig		= $settings.MCEBuddyConf
+    $global:HandBrakeCLI	= $settings.HandBrakeCLI  
+    $global:FFmpegPath		= $settings.FFmpegPath             
+    $DefaultVideoDir		= $settings.SEGvideoDir
+    $global:tempMp4Dir		= $settings.TempMp4Dir
+    $DefaultVideoQuality	= $settings.VideoQuality
+    $DefaultProfileName		= $settings.ProfileName
+    $DefaultMaxJobs		= $settings.MaxJobs
+    $DefaultAudioName		= $settings.AudioOverride
+    $DefaultPresetValue		= $settings.Preset
+}
+
+function Pause-MCEBuddy {
+    & $MCEBuddyCLI --command=engine --action=pause
+}
+
+function Resume-MCEBuddy {
+    & $MCEBuddyCLI --command=engine --action=resume
+}
+
+function Start-MCEBuddy {
+    & $MCEBuddyCLI --command=engine --action=start
+}
+
+function Stop-MCEBuddy {
+    & $MCEBuddyCLI --command=engine --action=stop
+}
+
+function Get-MCEBuddyState {
+    & $MCEBuddyCLI --command=query --action=enginestate
+}
+
 # ------------------------------------------------------------------------
 # Get-MCEBuddyTasks
 # read MCEBuddy config file and retrieve and return as an PSCustomObject all task names defined
@@ -322,29 +358,15 @@ function Restore-MCEBuddyOutputName {
 
 
 # =========================================================================
+# =========================================================================
+# =========================================================================
+# =========================================================================
 
 
 $themeFile = Join-Path $rootDir "data\theme.txt"
 $currentMode = Import-ThemeState -themeFile $themeFile
 $global:encoder = "FFmpeg"
 $global:tempFilesWaiting = 0
-$global:maxTempFilesWaiting = 3 
-
-$settings = Import-Settings
-
-if ($settings) {
-    $global:MCEBuddyCLI		= $settings.MCEBuddyCLI 
-    $mceBuddyConfig		= $settings.MCEBuddyConf
-    $global:HandBrakeCLI	= $settings.HandBrakeCLI  
-    $global:FFmpegPath		= $settings.FFmpegPath             
-    $DefaultVideoDir		= $settings.SEGvideoDir
-    $global:tempMp4Dir		= $settings.TempMp4Dir
-    $DefaultVideoQuality	= $settings.VideoQuality
-    $DefaultProfileName		= $settings.ProfileName
-    $DefaultMaxJobs		= $settings.MaxJobs
-    $DefaultAudioName		= $settings.AudioOverride
-    $DefaultPresetValue		= $settings.Preset
-}
 
 $DefaultRunMode         = "fallback"
 
@@ -513,8 +535,7 @@ function Update-TaskInfo {
 
     # FileSelection warnings
     if ([string]::IsNullOrWhiteSpace($selectedTask.FileSelection)) {
-	$labelFileFilter.ForeColor = [System.Drawing.Color]::Red
-	$labelFileFilter.Text = "File Filter: (none - accepts all matching files)"
+	$labelFileFilter.Text = "File Filter: (none - accepts all files)"
     }
     elseif ($selectedTask.FileSelection -in @("*.mp4","*.MP4","*")) {
 	$labelFileFilter.ForeColor = [System.Drawing.Color]::Red
@@ -539,7 +560,7 @@ Set-FormTheme -Form $form -Mode $currentMode
 
 $topStrt = 40
 $spacing = 40
-$top = $topstrt
+$top = $topstrt - 10
 $topstrtgrp = 40
 
 # ----------------------
@@ -547,8 +568,20 @@ $topstrtgrp = 40
 # ----------------------
 
 $CheckboxMCE, $label = Add-InputRow $form "" $top "checkbox"
-$CheckboxMCE.text = "MCEBuddy Task Management"
+$CheckboxMCE.text = "MCEBuddy Task Management  "
+$CheckboxMCE.Appearance = [System.Windows.Forms.Appearance]::Button
+# $CheckboxMCE.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$CheckboxMCE.FlatAppearance.BorderSize = 0
+# $CheckboxMCE.BackColor = [System.Drawing.Color]::SteelBlue
+$CheckboxMCE.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#444")
+$CheckboxMCE.ForeColor = [System.Drawing.Color]::White
+# $CheckboxMCE.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$CheckboxMCE.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+# $CheckboxMCE.AutoSize = $false
+# $CheckboxMCE.Width = 100
+# $CheckboxMCE.Height = 32
 
+  
 $top = (1*$spacing) +  $topstrt
 
 # ---------------------------------------------------------------
@@ -589,12 +622,14 @@ Set-ListViewStyle -ListView $listViewTasks -Mode $currentMode
 $topgrp = $topstrtgrp + (1*$spacing)
 
 $btnApply, $null = Add-InputRow $form ""   $top "button"
- $btnApply.Text = "Update Enabled MCEBuddy Tasks"
+ $btnApply.Text = "Update MCEBuddy Tasks"
  $btnApply.Location = New-Object System.Drawing.Point(40,190)
  $btnApply.Width = $buttonwidth + 400
 
+
 $groupTasks.Controls.Add($listViewTasks)
 $groupTasks.Controls.Add($btnApply)
+
 
 # ---------------------------------------------------------------
 #  MCE BUDDY TASK INFORMATION GROUP
@@ -608,9 +643,14 @@ Set-GroupBoxStyle -GroupBox $groupInfo -Mode $currentMode
 
 $form.Controls.Add($groupInfo)
 
-
 $topgrp = $topstrtgrp
+# ----------------------
+# MCEbuddy conversion engine state
+# ----------------------
 
+$null, $labelConvEngine = Add-InputRow $form "Conversion Engine State:"   $topgrp "$null"
+
+$topgrp = (1*$spacing) +  $topstrtgrp
 # ----------------------
 # Enabled
 # ----------------------
@@ -618,8 +658,7 @@ $topgrp = $topstrtgrp
 $null, $labelEnabled = Add-InputRow $form "Enabled:"   $topgrp "$null"
 # $labelEnabled.Font = New-Object System.Drawing.Font('Arial', 12)
 
-
-$topgrp = (1*$spacing) +  $topstrtgrp
+$topgrp = (2*$spacing) +  $topstrtgrp
 
 # ----------------------
 # --- Profile ---
@@ -627,20 +666,14 @@ $topgrp = (1*$spacing) +  $topstrtgrp
 
 $null, $labelTaskProfile = Add-InputRow $form "Profile:"   $topgrp "$null"
 $labelTaskProfile.Left =  $global:labelLeft
-# $labelTaskProfile.Font = New-Object System.Drawing.Font('Arial', 12)
-# $labelTaskProfile.ForeColor = [System.Drawing.Color]::Black
 
-
-$topgrp = (2*$spacing) + $topstrtgrp
+$topgrp = (3*$spacing) + $topstrtgrp
 
 # ----------------------
 # --- Destination folder ---
 # ----------------------
 $null, $labelDest = Add-InputRow $form "Destination:"   $topgrp "$null"
 $labelDest.Left = $global:labelLeft
-# $labelDest.Font = New-Object System.Drawing.Font('Arial', 12)
-# $labelDest.ForeColor = [System.Drawing.Color]::Black
-
 
 $topgrp = (3*$spacing) + $topstrtgrp
 
@@ -649,9 +682,7 @@ $topgrp = (3*$spacing) + $topstrtgrp
 # ----------------------
 
 $null, $labelTaskMonitor = Add-InputRow $form "Task Monitor:"   $topgrp "$null"
-# $labelTaskMonitor.Left = $global:labelLeft2 + 300
 $labelTaskMonitor.Left = $global:labelLeft
-# $labelTaskMonitor.Font = New-Object System.Drawing.Font('Arial', 12)
 
 $topgrp = (4*$spacing) + $topstrtgrp
 
@@ -660,27 +691,22 @@ $topgrp = (4*$spacing) + $topstrtgrp
 # ----------------------
 
 $null, $labelFileFilter = Add-InputRow $form "File Filter:"   $topgrp "$null"
-# $labelFileFilter.Left = $global:labelLeft2 + 300
 $labelFileFilter.Left = $global:labelLeft
-# $labelFileFilter.Font = New-Object System.Drawing.Font('Arial', 12)
 
-
- 
 $groupinfo.Controls.Add($labelEnabled)
 $groupinfo.Controls.Add($labelTaskProfile)
 $groupinfo.Controls.Add($labelDest)
 $groupinfo.Controls.Add($labelTaskMonitor)
 $groupinfo.Controls.Add($labelFileFilter)
+$groupinfo.Controls.Add($labelConvEngine)
 
-
-# $topStrt = 300
 $top = $topstrt
 
-
-# $top = (1*$spacing) + $topstrt
 $top = (8*$spacing) + $topstrt
 
-# --- Folder selection ---
+# ---------------------------------------------------------------
+# Video Directory
+# ===============================================================
 $textboxVideoDir, $labelVideoDir = Add-InputRow $form "Videos folder:"  $top "textbox"
 $textboxVideoDir.text = $DefaultVideoDir
 
@@ -692,14 +718,19 @@ $browseVideoDir.Add_Click({
     }
 })
 
-# $top = (2*$spacing) + $topstrt
 $top = (9*$spacing) + $topstrt
+# ---------------------------------------------------------------
+# Maximumconcurrent jobs
+# ===============================================================
 
-# Maximumconcurrent jobs Label & Textbox
 $textboxMaxJobs , $labelMaxJobs  = Add-InputRow $form "Max Concurrent Jobs:"   $top "textbox"
 $textboxMaxJobs.Text = $DefaultMaxJobs
 $textboxMaxJobs.Width = 35
 $textboxMaxJobs.Left = $global:labelLeft + $labelMaxJobs.Width
+
+# ---------------------------------------------------------------
+# Run Mode
+# ===============================================================
 
 $comboBoxRunMode , $labelrunMode = Add-InputRow $form "FFmpeg Run Mode:"   $top "combobox"
 $labelrunMode.Left = $global:labelLeft + $labelMaxJobs.Width + $textboxMaxJobs.Width + 20
@@ -717,18 +748,26 @@ $comboBoxRunMode.Text = ($runModeDisplayMap.Keys | Where-Object {
     $runModeDisplayMap[$_] -eq $DefaultRunMode 
 })
 
-# $top = (3*$spacing) + $topstrt
-$top = (10*$spacing) + $topstrt
+$top = (11*$spacing) + $topstrt
 
-# ----------------------
+# ---------------------------------------------------------------
 # --- FFmpeg Encoding Check Box ---
-# ----------------------
+# ===============================================================
 
 $CheckboxEnc, $label = Add-InputRow $form "" $top "checkbox"
-$CheckboxEnc.text = "FFmpeg Encoding Parameters"
+$CheckboxEnc.text = "FFmpeg Encoding Parameters  "
+
+$CheckboxEnc.Appearance = [System.Windows.Forms.Appearance]::Button
+# $CheckboxEnc.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$CheckboxEnc.FlatAppearance.BorderSize = 0
+$CheckboxEnc.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#444")
+$CheckboxEnc.ForeColor = [System.Drawing.Color]::White
+$CheckboxEnc.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+
+
 
 # $top = (4*$spacing) + $topstrt
-$top = (11*$spacing) + $topstrt
+$top = (13*$spacing) + $topstrt
 
 # ---------------------------------------------------------------
 #  FFmpeg encoding parameters group
@@ -790,14 +829,19 @@ $groupEnc.Controls.Add($labelAudio)
 # $top = (8*$spacing) + $topstrt
 $top = (15*$spacing) + $topstrt
 
+# ---------------------------------------------------------------
 # --- Start button ---
+# ===============================================================
+
 $btnStart, $null = Add-InputRow $form ""   $top "button"
 $btnStart.Text = "Start Processing"
 $btnStart.Location = New-Object System.Drawing.Point($global:labelLeft, $top)
 $btnStart.Width = $buttonwidth + 30
 
-
+# ---------------------------------------------------------------
 # --- Cancel button ---
+# ===============================================================
+
 $btnCancel, $null = Add-InputRow $form ""   1000 "button"
 $btnCancel.Text = "Cancel Processing"
 $btnCancel.Width = $buttonwidth + 30
@@ -808,7 +852,9 @@ $btnCancel.Enabled = $false
 # $top = (9*$spacing-10) + $topstrt
 $top = (16*$spacing-10) + $topstrt
 
+# ---------------------------------------------------------------
 # --- ListView for job status ---
+# ===============================================================
 $listView = New-Object System.Windows.Forms.ListView
 $listView.Location = New-Object System.Drawing.Point($global:labelLeft,$top)
 $listView.Size = New-Object System.Drawing.Size($formWidth,$listViewHght)
@@ -824,13 +870,17 @@ $listView.GridLines = $true
 Set-ListViewStyle -ListView $listView -Mode $currentMode
 $form.Controls.Add($listView)
 
-$tasks = Get-MCEBuddyTasks $mceBuddyConfig -ConfigFile $mceBuddyConfig
-Load-MCEBuddyTaskList $tasks
+
+# ------------------------------------------------------------------------
+# DropDownDisp
+# =========================================================================
 
 function DropDownDisp {
     $isVisible = $CheckboxMCE.Checked
     $groupinfo.Visible = $groupTasks.Visible =  $isVisible
     if ($isVisible) {
+	$tasks = Get-MCEBuddyTasks $mceBuddyConfig -ConfigFile $mceBuddyConfig
+	Load-MCEBuddyTaskList $tasks
 	$dispMCEmgmt = 7*$spacing
     } else {
 	$dispMCEmgmt = 0
@@ -872,8 +922,28 @@ DropDownDisp
 # =========================================================================
 $CheckboxMCE.Add_CheckedChanged({
     DropDownDisp
-})
+    
+    if ($CheckboxMCE.Checked) {
+	$CheckboxMCE.BackColor = ([System.Drawing.Color]::FromArgb(100, 100, 100))
+    }
+    else {
+        $CheckboxMCE.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#444")
+    }
+    # Query the MCEBuddy engine state
+    $engineOutput = Get-MCEBuddyState
 
+    # Extract engine state
+    $engineState = "unknown"
+
+    if ($engineOutput -match 'Engine state\s*=\s*(\w+)') {
+	$engineState = [regex]::Match(
+	    $engineOutput,
+	    'Engine state\s*=\s*(\w+)'
+	).Groups[1].Value
+    }
+    $labelConvEngine.text = "Conversion Engine State: $engineState"
+    Write-Host "MCEBuddy Engine State: $engineState"
+})
 
 # ------------------------------------------------------------------------
 # CheckboxEnc.Add_CheckedChanged
@@ -881,6 +951,12 @@ $CheckboxMCE.Add_CheckedChanged({
 # =========================================================================
 $CheckboxEnc.Add_CheckedChanged({
     DropDownDisp
+     if ($CheckboxEnc.Checked) {
+	$CheckboxEnc.BackColor = ([System.Drawing.Color]::FromArgb(100, 100, 100))
+    }
+    else {
+        $CheckboxEnc.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#444")
+    }
 })
 
 # ------------------------------------------------------------------------
@@ -906,6 +982,8 @@ $btnApply.Add_Click({
     }
 
     $changes = 0
+
+    Stop-MCEBuddy
 
     foreach ($item in $listViewTasks.Items) {
 
@@ -962,9 +1040,7 @@ $btnCancel.Add_Click({
         }
     }
 
-
     Start-Sleep -Seconds 3
-
 
     # Cleanup temp files
     Get-ChildItem $tempMp4Dir -Filter *.mp4 |
@@ -977,20 +1053,15 @@ $btnCancel.Add_Click({
         }
     }
 
-
     $timer.Stop()
 
     $global:tempFilesWaiting = 0
     $cleaned.Clear()
-
     $listView.Items.Clear()
-
     $btnStart.Enabled = $true
     $btnCancel.Enabled = $false
     # allow updating mcebuddy config 
      $btnApply.Enabled = $true
-      
-
 })
 
 # ----------------------
@@ -1017,21 +1088,24 @@ $form.AcceptButton = $btnStart
 # ----------------------
 $btnStart.Add_Click({
 
- # Verify at least one MCEBuddy task is enabled
-    $enabledTasks = @()
+   # ensure the tasks have been updated by clicking update button
+    $changes = 0
     foreach ($item in $listViewTasks.Items) {
-        if ($item.Checked) {
-            $enabledTasks += $item.Tag
-        }
+	$task = $item.Tag
+	if ($task.Enabled -ne $item.Checked) {
+	    $changes++
+	}
+
     }
 
-    if ($enabledTasks.Count -eq 0) {
-	Show-Alert -Title "MCEBuddy Task Selection" -Message "No MCEBuddy tasks are enabled. Please select at least one task before starting."
-        $tasks = Get-MCEBuddyTasks
-	Load-MCEBuddyTaskList $tasks
+    if ($changes -gt 0) {
+	Show-Alert -Title "MCEBuddy Task Selection" -Message "Changes were made to MCEbuddy tasks and not updated"
 	return
     }
 
+   
+
+    
     # $names = $enabledTasks.Name -join ", "
     # Show-Alert -Title "Processing" -Message "Starting with MCEBuddy task(s):`n$names"
     
@@ -1039,8 +1113,9 @@ $btnStart.Add_Click({
     # --- Read inputs directly from GUI ---
     $videoDir			    = $textboxVideoDir.Text.Trim()
     $global:videoQuality	    = $textboxVidQual.Text.Trim()
-    $global:maxConcurrentJobs	    = [int]$textboxMaxJobs.Text
+    $global:maxTempFilesWaiting	    = [int]$textboxMaxJobs.Text 
     $global:runMode		    = $runModeDisplayMap[$comboBoxRunMode.Text]
+    
 
     # if ($listViewTasks.SelectedItems.Count -eq 0) {
     #	Show-Alert "No MCEBuddy task has been selected."
@@ -1128,7 +1203,7 @@ $btnStart.Add_Click({
     $settings.SEGvideoDir   = $videoDir
     $settings.VideoQuality  = $global:videoQuality
     $settings.ProfileName   = $global:selectedEncodingProfile
-    $settings.MaxJobs       = $global:maxConcurrentJobs
+    $settings.MaxJobs       = $global:maxTempFilesWaiting
     $settings.AudioOverride = $global:selectedAudioProfile
     $settings.Preset        = $comboBoxPreset.SelectedItem
 
@@ -1152,7 +1227,7 @@ $btnStart.Add_Click({
     Cancel = $false
 })
 
-    # Start a single background thread to process folders sequentially
+   # Start a single background thread to process folders sequentially
     $global:processJob = Start-ThreadJob -Name "ProcessFolders" -ScriptBlock {
 	param(
             $videoDir,
@@ -1177,90 +1252,138 @@ $btnStart.Add_Click({
 	    $rootDir
         )
 
+	# ------------------------------------------------------------------------
+	# Get-MCEBuddyOutputName
+	# =========================================================================
+	function Get-MCEBuddyOutputName {
+	    param(
+		[string]$BaseName,
+		[string]$Extension,
+		 [string]$FileSelection = ""
+	    )
+
+	    return "$BaseName$Extension"
+
+	    if ([string]::IsNullOrWhiteSpace($FileSelection)) {
+		return "$BaseName$Extension"
+	    }
+
+	    # *text*
+	    if ($FileSelection -match '^\*(.+)\*$') {
+		return "$BaseName.$($matches[1])$Extension"
+	    }
+
+	    # *.something.ext
+	    if ($FileSelection -match '^\*\.(.+)\.(\w+)$') {
+		return "$BaseName.$($matches[1]).$($matches[2])"
+	    }
+
+	    # prefix*.ext
+	    if ($FileSelection -match '^(.+)\*\.(\w+)$') {
+		return "$($matches[1])$BaseName.$($matches[2])"
+	    }
+
+	    # something*
+	    if ($FileSelection -match '^(.+)\*$') {
+		return "$($matches[1])$BaseName$Extension"
+	    }
+
+	    # fallback
+	    return "$BaseName$Extension"
+	}
+	    
 
         # Ensure engine is running (idempotent)
         try { & $mcebuddyCLI --command=engine --action=start | Out-Null; Start-Sleep -Seconds 2 } catch {}
 
-        Get-ChildItem -Path $videoDir -Directory | ForEach-Object {
-            $folder     = $_.FullName
-            $folderName = $_.Name
+	$folders = Get-ChildItem -Path $videoDir -Directory
+
+	# --- Check for folders ---
+	if ($null -eq $folders -or $folders.Count -eq 0) {
+	    $logFile    = Join-Path $logDir "logs.log"
+	    "No folders found - exiting job: $videoDir" |
+		Out-File -FilePath $logFile -Append
+	    return 1
+	}
+
+	foreach ($folderItem in $folders) 
+	{
+            $folder     = $folderItem.FullName
+            $folderName = $folderItem.Name
             $segsDir    = Join-Path $folder "segs"
-	    $logFile    = Join-Path $global:logDir "$folderName.log"
+	    $logFile    = Join-Path $logDir "$folderName.log"
 
 	    if ($CancelToken.Cancel) {
 		break
 	    }
 
-            if (-not (Test-Path $segsDir)) { return }
+	    if (-not (Test-Path $segsDir)) {
+		 
+		$formRef.Invoke([Action]{
+		    $item = $listRef.Items.Add($folderName)
+		    [void]$item.SubItems.Add($outputFile)
+		    [void]$item.SubItems.Add("failed")
+		    [void]$item.SubItems.Add("No segs directory")
+		    [void]$item.SubItems.Add("—")
+		    [void]$item.SubItems.Add("—")
+		})
 
-            $tsFiles = Get-ChildItem -Path $segsDir -Filter "*.ts" | Sort-Object Name
-            if ($tsFiles.Count -eq 0) { return }
+		continue
 
-	    $mylistPath  = Join-Path $segsDir "concat.txt"
-
-	    # ------------------------------------------------------------------------
-	    # Get-MCEBuddyOutputName
-	    # =========================================================================
-	    function Get-MCEBuddyOutputName {
-		param(
-		    [string]$BaseName,
-		    [string]$Extension,
-		     [string]$FileSelection = ""
-		)
-
-		return "$BaseName$Extension"
-
-		if ([string]::IsNullOrWhiteSpace($FileSelection)) {
-		    return "$BaseName$Extension"
-		}
-
-		# *text*
-		if ($FileSelection -match '^\*(.+)\*$') {
-		    return "$BaseName.$($matches[1])$Extension"
-		}
-
-		# *.something.ext
-		if ($FileSelection -match '^\*\.(.+)\.(\w+)$') {
-		    return "$BaseName.$($matches[1]).$($matches[2])"
-		}
-
-		# prefix*.ext
-		if ($FileSelection -match '^(.+)\*\.(\w+)$') {
-		    return "$($matches[1])$BaseName.$($matches[2])"
-		}
-
-		# something*
-		if ($FileSelection -match '^(.+)\*$') {
-		    return "$($matches[1])$BaseName$Extension"
-		}
-
-		# fallback
-		return "$BaseName$Extension"
 	    }
 
-	     $fileName = Get-MCEBuddyOutputName `
-	    	-BaseName $folderName `
-	    	-Extension ".mp4" `
-	    	-FileSelection $selectedMCEBuddyTask.FileSelection
+	    $fileName = Get-MCEBuddyOutputName `
+		-BaseName $folderName `
+		-Extension ".mp4" `
+		-FileSelection $selectedMCEBuddyTask.FileSelection
 
-	     # Output file for ffmpeg to be passed to mcebuddy as input file
-	     $outputFile = Join-Path $tempMp4Dir $fileName    
+	    # Output file for ffmpeg to be passed to mcebuddy as input file
+	    $outputFile = Join-Path $tempMp4Dir $fileName
 
-            # Build concat file
-            $tsFiles | 
-		ForEach-Object { 
-		    "file '$($_.FullName)'" 
-		} | Set-Content -Path $mylistPath -Encoding ASCII
+	    # Add row to ListView (UI thread)
+	    $formRef.Invoke([Action]{
+		$item = $listRef.Items.Add($folderName)
+		[void]$item.SubItems.Add($outputFile)
+		[void]$item.SubItems.Add("Waiting...")
+		[void]$item.SubItems.Add("—")
+		[void]$item.SubItems.Add("—")
+		[void]$item.SubItems.Add("—")
+	    })
 
-            # Add row to ListView (UI thread) — placeholder for MCEBuddy status
-            $formRef.Invoke([Action]{
-                $item = $listRef.Items.Add($folderName)
-		 [void]$item.SubItems.Add($outputFile)
-                [void]$item.SubItems.Add("Converting...")   # copy status
-		[void]$item.SubItems.Add("—")		    # encode status
-                [void]$item.SubItems.Add("—")		    # MCEBuddy Status
-		[void]$item.SubItems.Add("—")		    # Counter
-            })
+	    $tsFiles = Get-ChildItem -Path $segsDir -Filter "*.ts" -File |
+		Sort-Object Name
+
+	    # No TS files
+	    if ($null -eq $tsFiles -or $tsFiles.Count -eq 0) {
+
+		"No TS files found - skipping: $folderName" |
+		    Out-File -FilePath $logFile -Append
+
+		$formRef.Invoke([Action]{
+		    foreach ($row in $listRef.Items) {
+			if ($row.Text -eq $folderName) {
+			    $row.SubItems[2].Text = "Failed"
+			    $row.SubItems[3].Text = "No TS files"
+			    break
+			}
+		    }
+		})
+
+		continue
+	    }
+
+	    # Only create concat.txt when TS files exist
+	    $mylistPath = Join-Path $segsDir "concat.txt"
+
+	    # Build concat file
+	    $tsFiles |
+		ForEach-Object {
+		    # Escape apostrophes for FFmpeg concat-file syntax
+		    $fullPath = $_.FullName -replace "'", "'\''"
+		    "file '$fullPath'"
+		} |
+		Set-Content -Path $mylistPath -Encoding ASCII
+
 
 	    # --- Encoding Variables ---
 	    # get video parameters based on encoder
@@ -1278,8 +1401,23 @@ $btnStart.Add_Click({
 		}
 	    }	
 		
+	    # --- Check encoder exists ---
 	    if (-not (Test-Path $encoderPath)) {
-		   return
+
+		"Encoder not found: $encoderPath - skipping $folderName" |
+		    Out-File -FilePath $logFile -Append
+
+		$formRef.Invoke([Action]{
+		    foreach ($row in $listRef.Items) {
+			if ($row.Text -eq $folderName) {
+			    $row.SubItems[2].Text = "Failed"
+			    $row.SubItems[3].Text = "Encoder not found"
+			    break
+			}
+		    }
+		})
+
+		continue
 	    }
 
 	    $audioBitrate  = $encodingProfile.Audio.Bitrate
@@ -1356,11 +1494,8 @@ $btnStart.Add_Click({
 	    
 	    try {
 		# --- FAST CONCAT ---
-		# $ffmpegOutput = & $ffmpegPath @ffmpegArgsConcatCopy 2>&1
-		# when starting ffmpeg
-
 		$ffmpegOutput = & $encoderPath @args 2>&1 
-		# $ffmpegOutput | Out-File -FilePath $logFile -Encoding UTF8 -Append	    
+		$ffmpegOutput | Out-File -FilePath $logFile -Append	    
 		$exitCode = $LASTEXITCODE
 	    } catch {
 		"$($_.Exception.Message)" | Out-File -FilePath $logFile -Encoding UTF8 -Append
@@ -1404,7 +1539,7 @@ $btnStart.Add_Click({
 			}
 		    })
 
-		    return
+		    continue  # Skip this folder; process the next one
 		}
 
 		$formRef.Invoke([Action]{
@@ -1441,9 +1576,8 @@ $btnStart.Add_Click({
 
 		"DEBUG: ReEncode -> args=$args" |
 		    Out-File -FilePath $logFile -Append
-		# $ffmpegOutput = & $ffmpegPath @ffmpegArgsConcatEnc 2>&1
 		$ffmpegOutput = & $encoderPath @args 2>&1 
-		# $ffmpegOutput | Out-File -FilePath $logFile -Encoding UTF8 -Append
+		$ffmpegOutput | Out-File -FilePath $logFile -Append
 
 		$exitCode = $LASTEXITCODE
 	
@@ -1475,9 +1609,9 @@ $btnStart.Add_Click({
 			    }
 			} #end foreach row in listview
 		    })
-
-		    return # failed both copy and encode 
-
+		    
+		    continue  # Copy and re-encode failed; process the next folder
+		  
 		} #endif re-encode logic
 	    } # endif ffmpeg copy failed
 
@@ -1511,7 +1645,9 @@ $btnStart.Add_Click({
             try {
 		#call MCEbuddyCli using $outputFile created by FFmpeg as input
 		& $mcebuddyCLI --command=addfile --action="$outputFile" | Out-Null
-                
+                # & $mcebuddyCLI --command=addfile --action="$outputFile" | 
+		#     Out-File -FilePath $logFile -Append
+
                 $formRef.Invoke([Action]{
                     foreach ($row in $listRef.Items) {
                         if ($row.Text -eq $folderName) {
@@ -1532,7 +1668,8 @@ $btnStart.Add_Click({
                     }
                 })
             }
-        } # foreach folder
+        } # end foreach folder
+	return 0
 
     } -ArgumentList $videoDir, 
 		    $global:logDir,
@@ -1554,7 +1691,6 @@ $btnStart.Add_Click({
 		    $global:selectedMCEBuddyTask,
 		    $global:CancelToken,
 		    $rootDir
-
 
 }) # buttonStart
 
@@ -1653,15 +1789,41 @@ $timer.Add_Tick({
         Write-Warning "Queue polling failed: $_"
    }
     
-  
 
-# if ($global:processJob) {
-#     Write-Host "State = $($global:processJob.State)"
-# }
-if ($global:processJob -and $global:processJob.State -in @('Completed','Failed','Stopped')) {
-    Receive-Job -Job $global:processJob -ErrorAction SilentlyContinue | Out-Null
-    Remove-Job  -Job $global:processJob -ErrorAction SilentlyContinue
-    $global:processJob = $null
+# if ($global:processJob -and $global:processJob.State -in @('Completed','Failed','Stopped')) {
+    #	Receive-Job -Job $global:processJob -ErrorAction SilentlyContinue | Out-Null
+    #	Remove-Job  -Job $global:processJob -ErrorAction SilentlyContinue
+    #	$global:processJob = $null
+    # }
+
+    if ($global:processJob -and $global:processJob.State -in @('Completed', 'Failed', 'Stopped')) 
+    {
+	# Capture the background job's output
+	$jobOutput = @(Receive-Job -Job $global:processJob `
+	    -ErrorAction SilentlyContinue)
+
+	# Check for the returned error code
+	$exitCode = $jobOutput |
+	    Where-Object { $_ -is [int] } |
+	 Select-Object -Last 1
+
+	 WRITE-HOST "EXITCODE $exitCode"
+
+	if ($exitCode -eq 1) {
+	    # No folders found - reset the GUI
+	    $btnStart.Enabled  = $true
+	    $btnCancel.Enabled = $false
+	    $btnApply.Enabled  = $true
+	    $form.Invoke([Action]{
+		$item = $listView.Items.Add("No video folders in segs directory")
+		[void]$item.SubItems.Add("-")
+		[void]$item.SubItems.Add("-")
+		[void]$item.SubItems.Add("Finished")
+	    })
+    }
+
+	Remove-Job -Job $global:processJob -ErrorAction SilentlyContinue
+	$global:processJob = $null
     }
 })
 $timer.Start()
@@ -1670,4 +1832,13 @@ $timer.Start()
 # --- Show the form ---
 [System.Windows.Forms.Application]::Run($form)
 # [System.Windows.Forms.Application]::EnableVisualStyles()
+
+
+
+
+
+
+
+
+
 
