@@ -56,15 +56,17 @@
     # FFmpeg stitches all of those files together into one output without re-encoding
     # $ffmpegArgsConcatCopy
 
+
     ConcatCopy = @(
 	"-loglevel","error",
 	"-hide_banner","-y",
 	"-f","concat","-safe","0",
+	"-fflags","+genpts+discardcorrupt",   # Rebuilds timelines and discards packet scraps
+	"-async","1",                        # Synchronizes audio start with video start
 	"-i","{INPUT}",
 	"-c","copy",
 	"{OUTPUT}"
     )
-
     # $inputPath = "movie.ts" or $inputPath = "movie.mp4"
     # It copies one media file into another container.
     # The additional option -map 0 means: Copy every stream from the input.
@@ -125,13 +127,14 @@
     ##################################################################
     # $ffmpegArgsConcatEnc
 
-    ConcatEncode = @(
+ConcatEncode = @(
 	"-loglevel","error",
 	"-hide_banner","-y",
+	"-fflags","+genpts+discardcorrupt",   # Moved BEFORE -i
 	"-f","concat",
 	"-safe","0",
 	"-i","{INPUT}",
-	"-fflags","+genpts","-reset_timestamps","1",
+	"-reset_timestamps","1",              # Apply resetting to the encoding chain
 	"-c:v","{VIDEO_ENCODER}",
 	"-preset", "{PRESET}",
 	"-crf","{CRF}",

@@ -75,9 +75,9 @@ if ([string]::IsNullOrWhiteSpace($DefaultVideoDir)) {
     $DefaultVideoDir = "D:\Desktop\Tablo\rec" 
 }
 
-if ([string]::IsNullOrWhiteSpace($DefaultVideoQuality)) {
-	$DefaultVideoQuality = "23"
-    }   
+# if ([string]::IsNullOrWhiteSpace($DefaultVideoQuality)) {
+#	$DefaultVideoQuality = "23"
+#    }   
 
 # --- Encoding Profiles ---
 $profiles = @{
@@ -218,6 +218,7 @@ Set-FormTheme -Form $form -Mode $currentMode
 $topStrt = 40
 $spacing = 50
 $top = $topstrt
+$topstrtgrp = 40
 
 # --- Folder selection ---
 $textboxVideoDir, $labelVideoDir = Add-InputRow $form "Videos folder:"  $top "textbox"
@@ -262,49 +263,92 @@ $textboxMinSize.Width = 100
 $textboxMinSize.Text = $DefaultSize
 
 
-$top = (3*$spacing-10) + $topstrt
+$top = (3*$spacing) + $topstrt
 
-# Seperator
+
+# ---------------------------------------------------------------
+# --- FFmpeg Encoding Check Box ---
+# ===============================================================
+
 $CheckboxEnc, $label = Add-InputRow $form "" $top "checkbox"
-$CheckboxEnc.text = "FFmpeg Encoding Parameters _________________________________________________________"
+$CheckboxEnc.text = "FFmpeg Encoding Parameters"
 
-$top = (4*$spacing-10) + $topstrt
+$CheckboxEnc.Appearance = [System.Windows.Forms.Appearance]::Button
+# $CheckboxEnc.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$CheckboxEnc.FlatAppearance.BorderSize = 0
+$CheckboxEnc.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#444")
+$CheckboxEnc.ForeColor = [System.Drawing.Color]::White
+$CheckboxEnc.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
 
-# Video Quality Label & Textbox
-$textboxVidQual , $labelVidQual  = Add-InputRow $form "Video Quality (CRF, 15-30):"   $top "textbox"
-$textboxVidQual.Width = 30
-$textboxVidQual.Left = $global:labelLeft  + $labelVidQual.Width
-$textboxVidQual.Text = $DefaultVideoQuality
+$top = (4*$spacing) + $topstrt
+
+
+# ---------------------------------------------------------------
+#  FFmpeg encoding parameters group
+# ===============================================================
+
+$groupEnc = New-Object System.Windows.Forms.GroupBox
+$groupEnc.Text = "FFmpeg Encoding Parameters"
+$groupEnc.Location = New-Object Drawing.Point($labelleft,$top)
+$groupEnc.Size = New-Object Drawing.Size(920,130)
+Set-GroupBoxStyle -GroupBox $groupEnc -Mode $currentMode
+$form.Controls.Add($groupEnc)
+
+
+$topgrp = $topstrtgrp
 
 # Video Profile
-$comboProfile , $labelProfile  = Add-InputRow $form "Video Profile:"   $top "combobox"
-$labelProfile.Left = $global:labelLeft2
-$comboProfile.Left = $global:labelLeft2 + $labelProfile.Width
+$comboProfile , $labelProfile  = Add-InputRow $form "Video Profile:"   $topgrp "combobox"
+$labelProfile.Left = $global:labelLeft
+$comboProfile.Left = $labelLeft + $labelProfile.Width 
 $comboProfile.Size     = New-Object System.Drawing.Size(250, 30)
-$comboProfile.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
 $comboProfile.Items.AddRange([string[]]$profiles.Keys)
 $comboProfile.SelectedItem = $DefaultProfileName
 
-$top = (5*$spacing-20) + $topstrt
+# Video Quality Label & ComboBox
+$comboVidQual, $labelVidQual = Add-InputRow $form "Video Quality override (CRF):" $topgrp "combobox"
+$comboVidQual.Width = 60
+$labelVidQual.Left = $global:labelLeft2 + 100
+$comboVidQual.Left = $global:labelLeft2 + 100 + $labelVidQual.Width
+# Add blank option and values 15-30
+$comboVidQual.Items.Add(" ") | Out-Null
+foreach ($quality in 15..30) {
+    $comboVidQual.Items.Add($quality.ToString()) | Out-Null
+}
+# Set default selection
+$comboVidQual.SelectedItem = $DefaultVideoQuality.ToString()
+
+$topgrp = (1*$spacing) + $topstrtgrp
 
 # Label encoder preset
-$comboBoxPreset , $labelPreset  = Add-InputRow $form  "Encoder Preset:"   $top "combobox"
+$comboBoxPreset , $labelPreset  = Add-InputRow $form  "Encoder Preset:"   $topgrp "combobox"
 $comboBoxPreset.Left = $global:labelLeft + $labelPreset.Width
 $comboBoxPreset.Size = New-Object System.Drawing.Size(230,30)
-$comboBoxPreset.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
 $comboBoxPreset.Items.AddRange([string[]]$presets.Keys)
 $comboBoxPreset.SelectedItem = $DefaultPresetValue
 
 # Label audio override
-$comboBoxAudio , $labelAudio  = Add-InputRow $form  "Audio Override:"   $top "combobox"
-$labelAudio.Left = $global:labelLeft2
-$comboBoxAudio.Left = $global:labelLeft2 + $labelAudio.Width
+$comboBoxAudio , $labelAudio  = Add-InputRow $form  "Audio Override:"   $topgrp "combobox"
+$labelAudio.Left = $global:labelLeft2 + 100
+$comboBoxAudio.Left = $global:labelLeft2 + $labelAudio.Width + 100
 $comboBoxAudio.Size = New-Object System.Drawing.Size(250,30)
 $comboBoxAudio.Items.AddRange([string[]]$audioOverride.Keys)
 $comboBoxAudio.SelectedItem = $DefaultAudioName
 
 
-$top = (7*$spacing-10) + $topstrt
+$groupEnc.Controls.Add($comboVidQual)
+$groupEnc.Controls.Add($labelVidQual)
+$groupEnc.Controls.Add($comboProfile)
+$groupEnc.Controls.Add($labelProfile)
+$groupEnc.Controls.Add($comboBoxPreset)
+$groupEnc.Controls.Add($labelPreset)
+$groupEnc.Controls.Add($comboBoxAudio)
+$groupEnc.Controls.Add($labelAudio)
+
+ # $groupEnc.Visible = $false
+
+$top = (8*$spacing) + $topstrt
+#$top = (15*$spacing) + $topstrt
 
 # --- Start button ---
 $btnStart, $null = Add-InputRow $form ""   $top "button"
@@ -329,7 +373,7 @@ $btnCancel.Width = $buttonwidth + 30
 $btnCancel.Left = $global:labelLeft + 650
  $btnCancel.Enabled = $false
 
-$top = (8*$spacing-10) + $topstrt
+$top = (9*$spacing-10) + $topstrt
 
 # --- ListView for job status ---
 $listView = New-Object System.Windows.Forms.ListView
@@ -345,32 +389,31 @@ $listView.GridLines = $true
 Set-ListViewStyle -ListView $listView -Mode $currentMode
 $form.Controls.Add($listView)
 
+
 # ------------------------------------------------------------------------
 # EncParamDisplay
 # Displays encoding parameters based upon $CheckboxEnc.Checked
 # =========================================================================
 function EncParamDisplay {
 
-    $isVisible = $CheckboxEnc.Checked
-    $labelVidQual.Visible = $textboxVidQual.Visible =  $isVisible
-    $labelProfile.Visible = $comboProfile.Visible =  $isVisible
-    $labelPreset.Visible = $comboBoxPreset.Visible =  $isVisible
-    $labelAudio.Visible =  $comboBoxAudio.Visible =  $isVisible
+   $isVisible = $CheckboxEnc.Checked
+    $groupEnc.Visible = $isVisible
+
     if ($isVisible) {
-	$top = (7*$spacing) + $topstrt
-	$btnStart.Top = $top
-	$comboBoxUsing.Top = $labelUsing.Top = $top
-	$btnCancel.Top = $top
-	$top = (8*$spacing) + $topstrt
-	$listView.Top = $top
+	$dispEnc = 4*$spacing
     } else {
-	$top = (4*$spacing-10) + $topstrt
-	$btnStart.Top = $top
-	$comboBoxUsing.Top = $labelUsing.Top = $top
-	$btnCancel.Top = $top
-	$top = (5*$spacing) + $topstrt
-	$listView.Top = $top
+	$dispEnc = 0
     }
+
+    $top = ((4*$spacing) + $topstrt)
+    $btnStart.Top = $top + $dispEnc
+     $comboBoxUsing.Top = $top + $dispEnc
+    $labelUsing.Top =  $top + $dispEnc
+    $btnCancel.Top = $top + $dispEnc
+   
+    $top = ((5*$spacing) + $topstrt)
+    $listView.Top = $top + $dispEnc
+    
 }
 
 EncParamDisplay
@@ -381,6 +424,12 @@ EncParamDisplay
 #
 $CheckboxEnc.Add_CheckedChanged({
     EncParamDisplay
+    if ($CheckboxEnc.Checked) {
+	$CheckboxEnc.BackColor = ([System.Drawing.Color]::FromArgb(100, 100, 100))
+    }
+    else {
+        $CheckboxEnc.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#444")
+    }
 })
 
 
@@ -421,13 +470,10 @@ $form.AcceptButton = $btnStart
 # ----------------------
 $btnStart.Add_Click({
 
-    $btnStart.Enabled  = $false
-    $btnCancel.Enabled = $true
-
     # --- Read inputs directly from GUI ---
     $videoDir			= $textboxVideoDir.Text.Trim()
     $global:destination		= $textboxDest.Text.Trim()
-    $global:videoQuality	= $textboxVidQual.Text.Trim()
+    $global:videoQuality	    = $comboVidQual.SelectedItem.ToString().Trim()
     $global:maxConcurrentJobs	= [int]$textboxMaxJobs.Text
     # $global:encoder		= $comboBoxUsing.SelectedItem
 
@@ -448,6 +494,7 @@ $btnStart.Add_Click({
 	Write-Host "Error: $_"
 	return
     }
+    Write-Host "videoQuality: $global:videoQuality"
     Write-Host "Using Encoder: $global:encoder "
     Write-Host Selected Encoding Profile: $global:selectedEncodingProfile
     switch ($encoder) {
@@ -460,6 +507,7 @@ $btnStart.Add_Click({
 	    Write-Host Audio: $global:encodingProfile.Audio.FFmpeg
 	}
     }	
+   
     Write-Host Encoder Bitrate: $global:encodingProfile.Audio.Bitrate
     Write-Host Encoder Video Quality: $global:encodingProfile.Video.Quality
     Write-Host Selected Audio Override Profile: $global:selectedAudioProfile
@@ -496,13 +544,26 @@ $btnStart.Add_Click({
             $form.DialogResult = [System.Windows.Forms.DialogResult]::None
             return
     }
+     # Validate Video Quality only when a value was entered
+    if (-not [string]::IsNullOrWhiteSpace($global:videoQuality) -and
+	$global:videoQuality -ne '0') {
 
-    if (-not [int]::TryParse($global:videoQuality, [ref]$null) -or
-        [int]$global:videoQuality -lt 15 -or [int]$global:videoQuality -gt 30) {
-	Show-Alert -Title "Invalid Input"-Message "Please enter a valid Video Quality (CRF) number between 15 and 30."
-        $form.DialogResult = [System.Windows.Forms.DialogResult]::None
-        return
+	$parsedQuality = 0
+
+	if (-not [int]::TryParse(
+		[string]$global:videoQuality,
+		[ref]$parsedQuality
+	    ) -or
+	    $parsedQuality -lt 15 -or
+	    $parsedQuality -gt 30) {
+
+	    Show-Alert -Title "Invalid Input" -Message "Please enter a valid Video Quality (CRF) number between 15 and 30."
+	    $form.DialogResult = [System.Windows.Forms.DialogResult]::None
+	    return
+	}
     }
+    
+
    $settings = Import-Settings
 
     $settings.VideoDir      = $videoDir
@@ -517,6 +578,9 @@ $btnStart.Add_Click({
 
 
    Save-Settings $settings 
+
+    $btnStart.Enabled  = $false
+    $btnCancel.Enabled = $true
 
     # --- Prepare logs directory ---
     $global:logDir = Join-Path $PSScriptRoot "logs"
@@ -661,7 +725,13 @@ $btnStart.Add_Click({
 		}
 		
 		$audioBitrate  = $encodingProfile.Audio.Bitrate
-		$videoQuality  = $encodingProfile.Video.Quality
+
+		# check for video qual override
+		if ([string]::IsNullOrWhiteSpace($global:videoQuality) -or
+		    $global:videoQuality -eq '0') {
+
+		    $videoQuality  = $encodingProfile.Video.Quality
+		}
 
 		# see if audio override parameters  video parameters were selected for ffmpeg encode
 		$audioChannels = ""
@@ -768,7 +838,7 @@ $btnStart.Add_Click({
 			    $global:selectedPresetValue,
 			    $global:ffmpegPath,
 			    $global:mcebuddyCLI,
-			    $global:handBrakeCLI
+			    $global:handBrakeCLI,
 			    $rootDir
 
 	} # end of while jobs

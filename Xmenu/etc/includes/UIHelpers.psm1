@@ -265,3 +265,19 @@ function Set-comboBoxStyle {
     }
 }
 
+# =====================================================
+# =====================================================
+function Set-GroupBoxStyle {
+    param (
+        [System.Windows.Forms.GroupBox]$GroupBox,
+        [string]$Mode
+    )
+    if ($Mode -eq 'dark') {
+        $GroupBox.BackColor = "#1E1E1E"
+        $GroupBox.ForeColor = "white"
+    } else {
+        $GroupBox.BackColor = "White"
+        $GroupBox.ForeColor = "Black"
+        
+    }
+}
