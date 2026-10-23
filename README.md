@@ -14,7 +14,7 @@ Prerequisites:
         This driver lets PowerShell connect to a SQLite database through Windows ODBC.
         Make sure you install the driver version that matches the bitness of the PowerShell process running your script (32-bit           or 64-bit). Since you use PowerShell 7 (pwsh) as well as Windows PowerShell 5.1, check which one launches your script and         whether it is 64-bit.
 
-    
+    Create Tablo directory.  Copy the Xmenu directory and all files. Run menu.bat.
     
 Note:  Use an external usb drive on the Tablo to capture video so that it can be connected to computer.  Tablo uses a Linux file system so in Windows computer use apps such as "DiskiInternals Linux Reader" to retrieve the necessary files.  
 
