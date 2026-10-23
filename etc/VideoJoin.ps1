@@ -74,9 +74,9 @@ if ([string]::IsNullOrWhiteSpace($DefaultVideoDir)) {
     $DefaultVideoDir = "D:\Desktop\Tablo\rec" 
 }
 
-if ([string]::IsNullOrWhiteSpace($DefaultVideoQuality)) {
-	$DefaultVideoQuality = "23"
-    }   
+# if ([string]::IsNullOrWhiteSpace($DefaultVideoQuality)) {
+# 	$DefaultVideoQuality = "23"
+#    }   
 
 # --- Encoding Profiles ---
 $profiles = @{
@@ -217,6 +217,7 @@ Set-FormTheme -Form $form -Mode $currentMode
 $topStrt = 40
 $spacing = 50
 $top = $topstrt
+$topstrtgrp = 40
 
 # --- Folder selection ---
 $textboxVideoDir, $labelVideoDir = Add-InputRow $form "Videos folder:"  $top "textbox"
@@ -274,54 +275,96 @@ $comboBoxRunMode.Items.AddRange(@($runModeDisplayMap.Keys))
 $comboBoxRunMode.Text = ($runModeDisplayMap.Keys | Where-Object { 
     $runModeDisplayMap[$_] -eq $DefaultRunMode 
 })
+$top = (3*$spacing) + $topstrt
+# ---------------------------------------------------------------
+# --- FFmpeg Encoding Check Box ---
+# ===============================================================
 
-
-$top = (3*$spacing-10) + $topstrt
-
-# Seperator
-# $null , $label  = Add-InputRow $form "Encoding Parameters   __________________________________________________________________________________"   $top "$null"
-
-# Seperator
 $CheckboxEnc, $label = Add-InputRow $form "" $top "checkbox"
-$CheckboxEnc.text = "FFmpeg Encoding Parameters _________________________________________________________"
+$CheckboxEnc.text = "FFmpeg Encoding Parameters"
 
-$top = (4*$spacing-10) + $topstrt
+$CheckboxEnc.Appearance = [System.Windows.Forms.Appearance]::Button
+# $CheckboxEnc.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$CheckboxEnc.FlatAppearance.BorderSize = 0
+$CheckboxEnc.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#444")
+$CheckboxEnc.ForeColor = [System.Drawing.Color]::White
+$CheckboxEnc.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
 
-# Video Quality Label & Textbox
-$textboxVidQual , $labelVidQual  = Add-InputRow $form "Video Quality (CRF, 15-30):"   $top "textbox"
-$textboxVidQual.Width = 30
-$textboxVidQual.Left = $global:labelLeft  + $labelVidQual.Width
-$textboxVidQual.Text = $DefaultVideoQuality
+$top = (4*$spacing) + $topstrt
+
+
+# ---------------------------------------------------------------
+#  FFmpeg encoding parameters group
+# ===============================================================
+
+$groupEnc = New-Object System.Windows.Forms.GroupBox
+$groupEnc.Text = "FFmpeg Encoding Parameters"
+$groupEnc.Location = New-Object Drawing.Point($labelleft,$top)
+$groupEnc.Size = New-Object Drawing.Size(920,130)
+Set-GroupBoxStyle -GroupBox $groupEnc -Mode $currentMode
+$form.Controls.Add($groupEnc)
+
+
+$topgrp = $topstrtgrp
 
 # Video Profile
-$comboProfile , $labelProfile  = Add-InputRow $form "Video Profile:"   $top "combobox"
-$labelProfile.Left = $global:labelLeft2
-$comboProfile.Left = $global:labelLeft2 + $labelProfile.Width
+$comboProfile , $labelProfile  = Add-InputRow $form "Video Profile:"   $topgrp "combobox"
+$labelProfile.Left = $global:labelLeft
+$comboProfile.Left = $labelLeft + $labelProfile.Width 
 $comboProfile.Size     = New-Object System.Drawing.Size(250, 30)
 $comboProfile.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
 $comboProfile.Items.AddRange([string[]]$profiles.Keys)
 $comboProfile.SelectedItem = $DefaultProfileName
 
-$top = (5*$spacing-20) + $topstrt
+# Video Quality Label & ComboBox
+$comboVidQual, $labelVidQual = Add-InputRow $form "Video Quality override (CRF):" $topgrp "combobox"
+$comboVidQual.Width = 60
+$labelVidQual.Left = $global:labelLeft2 + 100
+$comboVidQual.Left = $global:labelLeft2 + 100 + $labelVidQual.Width
+# Add blank option and values 15-30
+$comboVidQual.Items.Add(" ") | Out-Null
+foreach ($quality in 15..30) {
+    $comboVidQual.Items.Add($quality.ToString()) | Out-Null
+}
+# Set default selection
+if ($null -ne $DefaultVideoQuality) {
+    $comboVidQual.SelectedItem = $DefaultVideoQuality.ToString()
+}
+else {
+    $comboVidQual.SelectedIndex = 0  # Select blank option
+}
+
+$topgrp = (1*$spacing) + $topstrtgrp
 
 # Label encoder preset
-$comboBoxPreset , $labelPreset  = Add-InputRow $form  "Encoder Preset:"   $top "combobox"
+$comboBoxPreset , $labelPreset  = Add-InputRow $form  "Encoder Preset:"   $topgrp "combobox"
 $comboBoxPreset.Left = $global:labelLeft + $labelPreset.Width
 $comboBoxPreset.Size = New-Object System.Drawing.Size(230,30)
-$comboBoxPreset.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
 $comboBoxPreset.Items.AddRange([string[]]$presets.Keys)
 $comboBoxPreset.SelectedItem = $DefaultPresetValue
 
 # Label audio override
-$comboBoxAudio , $labelAudio  = Add-InputRow $form  "Audio Override:"   $top "combobox"
-$labelAudio.Left = $global:labelLeft2
-$comboBoxAudio.Left = $global:labelLeft2 + $labelAudio.Width
+$comboBoxAudio , $labelAudio  = Add-InputRow $form  "Audio Override:"   $topgrp "combobox"
+$labelAudio.Left = $global:labelLeft2 + 100
+$comboBoxAudio.Left = $global:labelLeft2 + $labelAudio.Width + 100
 $comboBoxAudio.Size = New-Object System.Drawing.Size(250,30)
 $comboBoxAudio.Items.AddRange([string[]]$audioOverride.Keys)
 $comboBoxAudio.SelectedItem = $DefaultAudioName
 
 
-$top = (7*$spacing-10) + $topstrt
+$groupEnc.Controls.Add($comboVidQual)
+$groupEnc.Controls.Add($labelVidQual)
+$groupEnc.Controls.Add($comboProfile)
+$groupEnc.Controls.Add($labelProfile)
+$groupEnc.Controls.Add($comboBoxPreset)
+$groupEnc.Controls.Add($labelPreset)
+$groupEnc.Controls.Add($comboBoxAudio)
+$groupEnc.Controls.Add($labelAudio)
+
+ # $groupEnc.Visible = $false
+
+$top = (8*$spacing) + $topstrt
+#$top = (15*$spacing) + $topstrt
 
 # --- Start button ---
 $btnStart, $null = Add-InputRow $form ""   $top "button"
@@ -355,92 +398,81 @@ $listView.GridLines = $true
 Set-ListViewStyle -ListView $listView -Mode $currentMode
 $form.Controls.Add($listView)
 
-if ($comboBoxRunMode.Text -eq "Remux Only") {
-    $label.Visible = $false
-    $labelVidQual.Visible = $textboxVidQual.Visible = $false
-    $labelProfile.Visible = $comboProfile.Visible = $false
-    $labelPreset.Visible = $comboBoxPreset.Visible = $false
-    $labelAudio.Visible =  $comboBoxAudio.Visible = $false
-    $top = (4*$spacing-10) + $topstrt
-    $btnStart.Location = New-Object System.Drawing.Point($labelLeft,$top)
-    $top = (5*$spacing-10) + $topstrt
-    $listView.Location = New-Object System.Drawing.Point(10,$top)
-    $btnCancel.Top = $top
-}
-
 # ------------------------------------------------------------------------
 # EncParamDisplay
 # Displays encoding parameters based upon $CheckboxEnc.Checked
 # =========================================================================
 function EncParamDisplay {
 
-    param(
-	[boolean]$isVisible
-    )
+   $isVisible = $CheckboxEnc.Checked
+    $groupEnc.Visible = $isVisible
    
-    # $isVisible = $CheckboxEnc.Checked
-    $labelVidQual.Visible = $textboxVidQual.Visible =  $isVisible
-    $labelProfile.Visible = $comboProfile.Visible =  $isVisible
-    $labelPreset.Visible = $comboBoxPreset.Visible =  $isVisible
-    $labelAudio.Visible =  $comboBoxAudio.Visible =  $isVisible
     if ($isVisible) {
-	$top = (7*$spacing) + $topstrt
-	$btnStart.Top = $top
-	$btnCancel.Top = $top
-	$top = (8*$spacing) + $topstrt
-	$listView.Top = $top
+	$dispEnc = 4*$spacing
     } else {
-	$top = (4*$spacing-10) + $topstrt
-	$btnStart.Top = $top
-	$btnCancel.Top = $top
-	$top = (5*$spacing) + $topstrt
-	$listView.Top = $top
+	$dispEnc = 0
     }
-}
 
-#
-# set startup display items
-#
+    $top = ((4*$spacing) + $topstrt)
+    $btnStart.Top = $top + $dispEnc
+     
+    $btnCancel.Top = $top + $dispEnc
 
-if ($comboBoxRunMode.SelectedItem -eq "Remux Only") {
-    $CheckboxEnc.Visible = $false
-     EncParamDisplay -isVisible $false
-} else {
-    $CheckboxEnc.Visible = $true
-    EncParamDisplay -isVisible $true
-}
+    $top = ((5*$spacing) + $topstrt)
+    $listView.Top = $top + $dispEnc
 
-EncParamDisplay -isVisible $CheckboxEnc.Checked
-
-
-
-#
-# comboBoxRunMode.Add_SelectedIndexChanged
-#
-#
-$comboBoxRunMode.Add_SelectedIndexChanged({
-    switch ($comboBoxRunMode.SelectedItem) {
-
-	"Remux Only" {
-	    $CheckboxEnc.Visible = $false
-	    EncParamDisplay -isVisible $false
 	}
 	    
-	default {
-	    $CheckboxEnc.Visible = $true
-	    EncParamDisplay -isVisible $true
-        }
+
+# ------------------------------------------------------------------------
+# RemuxDisplay
+# Displays encoding parameters based upon run mode
+# =========================================================================
+function RemuxDisplay {
+    
+    $CheckboxEnc.Visible = $false
+    $groupEnc.Visible = $false
+    $top = ((4*$spacing) + $topstrt)
+    $btnStart.Top = $top + $dispEnc  
+    $btnCancel.Top = $top + $dispEnc
+    $top = ((5*$spacing) + $topstrt)
+    $listView.Top = $top + $dispEnc
+
+}
+
+if ($comboBoxRunMode.Text -eq "Remux Only") {
+	RemuxDisplay
+}
+
+$comboBoxRunMode.Add_SelectedIndexChanged({
+
+    if ($comboBoxRunMode.Text -eq "Remux Only") {
+	RemuxDisplay
+   
+    } else {
+	$CheckboxEnc.Visible = $true
+	EncParamDisplay
     }
+
 })
+
+EncParamDisplay
 
 #
 # CheckboxEnc.Add_CheckedChanged
 #
 #
 $CheckboxEnc.Add_CheckedChanged({
-    EncParamDisplay -isVisible $CheckboxEnc.Checked
-    
+    EncParamDisplay
+    if ($CheckboxEnc.Checked) {
+	$CheckboxEnc.BackColor = ([System.Drawing.Color]::FromArgb(100, 100, 100))
+    }
+    else {
+        $CheckboxEnc.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#444")
+    }
 })
+
+
 
 
 # ----------------------
@@ -490,7 +522,7 @@ $btnStart.Add_Click({
     # --- Read inputs directly from GUI ---
     $videoDir			= $textboxVideoDir.Text.Trim()
     $global:destination		= $textboxDest.Text.Trim()
-    $global:videoQuality	= $textboxVidQual.Text.Trim()
+    $global:videoQuality	= $comboVidQual.SelectedItem
     $global:maxConcurrentJobs	= [int]$textboxMaxJobs.Text
     # $global:encoder		= $comboBoxUsing.SelectedItem
    
@@ -563,13 +595,26 @@ $btnStart.Add_Click({
             $form.DialogResult = [System.Windows.Forms.DialogResult]::None
             return
         }
+     # Validate Video Quality only when a value was entered
+    if (-not [string]::IsNullOrWhiteSpace($global:videoQuality) -and
+	$global:videoQuality -ne '0') {
 
-    if (-not [int]::TryParse($global:videoQuality, [ref]$null) -or
-        [int]$global:videoQuality -lt 15 -or [int]$global:videoQuality -gt 30) {
-	Show-Alert -Title "Invalid Input"-Message "Please enter a valid Video Quality (CRF) number between 15 and 30."
-        $form.DialogResult = [System.Windows.Forms.DialogResult]::None
-        return
+	$parsedQuality = 0
+
+	if (-not [int]::TryParse(
+		[string]$global:videoQuality,
+		[ref]$parsedQuality
+	    ) -or
+	    $parsedQuality -lt 15 -or
+	    $parsedQuality -gt 30) {
+
+	    Show-Alert -Title "Invalid Input" -Message "Please enter a valid Video Quality (CRF) number between 15 and 30."
+	    $form.DialogResult = [System.Windows.Forms.DialogResult]::None
+	    return
+	}
     }
+    
+
    $settings = Import-Settings
 
     $settings.SEGvideoDir      = $videoDir
@@ -584,6 +629,9 @@ $btnStart.Add_Click({
 
 
    Save-Settings $settings 
+
+    $btnStart.Enabled  = $false
+    $btnCancel.Enabled = $true
 
     # --- Prepare logs directory ---
     $global:logDir = Join-Path $PSScriptRoot "logs"
@@ -623,6 +671,11 @@ $btnStart.Add_Click({
         # Write-Host "Queue=$($global:folderQueue.Count), Jobs=$($global:jobs.Count), MaxJobs=$($global:maxConcurrentJobs)"
 	# Write-Host "videoQuality: $global:videoQuality"
 
+	if (-not (Test-Path $global:ffmpegPath)) {
+	    Show-Alert -Title "FFmpeg Error"-Message "FFmpeg not found at $global:ffmpegPath"
+	    return
+	}
+	
 	# --- Collect running job updates ---
 	$running = $global:jobs | Where-Object { $_.State -eq 'Running' }
 	foreach ($rj in $running) {
@@ -653,33 +706,77 @@ $btnStart.Add_Click({
             $outputFile = Join-Path $global:destination "$folderName.mp4"
             $logFile    = Join-Path $global:logDir "$folderName.log"
 	    $i++
-	    $tsFiles = Get-ChildItem -Path $segsPath -Filter "*.ts" -File | Sort-Object Name
-	    if ($tsFiles.Count -gt 0) {
-		$videoFiles = $tsFiles
-	    } else {
-		$mp4Files = Get-ChildItem -Path $segsPath -Filter "*.mp4" -File | Sort-Object Name
-		if ($mp4Files.Count -gt 0) {
-		    $videoFiles = $mp4Files
-		} else {
-		    continue  # no valid files, skip this folder
-		}
-	    }
-	    if (Test-Path $outputFile) {
-		Write-Host " "
-		Write-Host $outputFile exists, no action will be performed 
-		continue 
-	    }
 
-            # Add row to ListView
+	    # Add row to ListView FIRST
             $form.Invoke([Action]{
                 $item = $listView.Items.Add($folderName)
-		[void]$item.SubItems.Add($outputFile)
-		[void]$item.SubItems.Add("—")	    # Fast status   
-                [void]$item.SubItems.Add("—")	    # Fallback status
-		[void]$item.SubItems.Add("—")	    # Final col
+                [void]$item.SubItems.Add($outputFile)
+                [void]$item.SubItems.Add("—")  # Fast status
+                [void]$item.SubItems.Add("—")  # Fallback status
+                [void]$item.SubItems.Add("—")  # Final status
+
                 $global:itemMap[$folderName] = $item
-		
             })
+
+            # Build the list of video files
+
+            $tsFiles = @(
+                Get-ChildItem -Path $segsPath -Filter "*.ts" -File `
+                    -ErrorAction SilentlyContinue |
+                    Sort-Object Name
+            )
+
+            # Fall back to MP4 files if no TS files were found
+            if ($tsFiles.Count -eq 0) {
+                $tsFiles = @(
+                    Get-ChildItem -Path $segsPath -Filter "*.mp4" -File `
+                        -ErrorAction SilentlyContinue |
+                        Sort-Object Name
+                )
+            }
+
+            # No TS or MP4 files found
+            if ($tsFiles.Count -eq 0) {
+
+                $message = "No TS or MP4 files found - skipping: $folderName"
+
+                $message | Out-File -FilePath $logFile -Append
+
+                $form.Invoke([Action]{
+                    $item = $global:itemMap[$folderName]
+
+                    if ($null -ne $item) {
+                        $item.SubItems[2].Text = "Failed"
+                        $item.SubItems[3].Text = "No video files"
+                        $item.SubItems[4].Text = "Skipped"
+                    }
+                })
+
+                # Skip this folder and process the next one
+                $global:failCount++
+                continue
+            }
+
+            # Skip files that already exist
+           if (Test-Path $outputFile) {
+	    Write-Host "$outputFile exists, no action will be performed"
+
+	    $form.Invoke([Action]{
+		$item = $global:itemMap[$folderName]
+
+		if ($null -ne $item) {
+		    $item.SubItems[2].Text = "Skipped"
+		    $item.SubItems[3].Text = "Existing file"
+		    $item.SubItems[4].Text = "Already exists"
+		}
+	    })
+
+	    continue
+	}
+
+
+
+
 
 	    # ------------------
 	    #  Start Job Thread
@@ -719,27 +816,67 @@ $btnStart.Add_Click({
 		    FinalStatus    = $status
 		})
 
-		# Write file list for ffmpeg concat
+		# Build the FFmpeg concat list
 		$mylistPath = Join-Path $segsPath "mylist.txt"
-		Remove-Item -Path $mylistPath -ErrorAction SilentlyContinue
 
-		# Get-ChildItem $segsPath -Filter "*.ts" | Sort-Object Name |
-                 #   ForEach-Object { "file '$($_.Name)'" | Out-File -FilePath $mylistPath -Encoding ASCII -Append }
+		Remove-Item -LiteralPath $mylistPath -ErrorAction SilentlyContinue
 
-		$tsFiles = Get-ChildItem -Path $segsPath -Filter "*.ts" -File | Sort-Object Name
-		if ($tsFiles.Count -gt 0) {
-		    $videoFiles = $tsFiles
-		} else {
-		    $mp4Files = Get-ChildItem -Path $segsPath -Filter "*.mp4" -File | Sort-Object Name
-		    if ($mp4Files.Count -gt 0) {
-			$videoFiles = $mp4Files
+		# Find TS files first
+		$inputFiles = @(
+		    Get-ChildItem -LiteralPath $segsPath -Filter "*.ts" -File `
+			-ErrorAction SilentlyContinue |
+			Sort-Object Name
+		)
+
+		# Use MP4 files if no TS files exist
+		if ($inputFiles.Count -eq 0) {
+		    $inputFiles = @(
+			Get-ChildItem -LiteralPath $segsPath -Filter "*.mp4" -File `
+			    -ErrorAction SilentlyContinue |
+			    Sort-Object Name
+		    )
+		}
+
+		# Verify that files were found
+		if ($inputFiles.Count -eq 0) {
+		    "No TS or MP4 files found - skipping: $folderName" |
+			Out-File -FilePath $logFile -Encoding UTF8 -Append
+
+		    return [PSCustomObject]@{
+			Folder         = $folderName
+			FastStatus     = "Fail"
+			FallbackStatus = "—"
+			FinalStatus    = "Failed"
 		    }
 		}
-		$videoFiles | ForEach-Object {
-		    "file '$($_.Name)'" | Out-File -FilePath $mylistPath -Encoding ASCII -Append
+
+		# Write one entry for each file
+		$concatLines = foreach ($file in $inputFiles) {
+		    $fullPath = $file.FullName -replace "'", "'\''"
+		    "file '$fullPath'"
 		}
 
-			# --- Encoding Variables ---
+		[System.IO.File]::WriteAllLines(
+		    $mylistPath,
+		    [string[]]$concatLines,
+		    [System.Text.Encoding]::ASCII
+		)
+
+		# Verify that the list was created
+		if (-not (Test-Path -LiteralPath $mylistPath) -or
+		    (Get-Item -LiteralPath $mylistPath).Length -eq 0) {
+
+		    "Failed to create FFmpeg list: $mylistPath" |
+			Out-File -FilePath $logFile -Encoding UTF8 -Append
+
+		    return [PSCustomObject]@{
+			Folder         = $folderName
+			FastStatus     = "Fail"
+			FallbackStatus = "—"
+			FinalStatus    = "Failed"
+		    }
+		}
+		# --- Encoding Variables ---
 		# get video parameters based on encoder
 
 		switch ($encoder) {
@@ -835,7 +972,7 @@ $btnStart.Add_Click({
 		    try {
 			# --- FAST CONCAT ---
 			$ffmpegOutput = & $encoderPath @args 2>&1 
-			# $ffmpegOutput | Out-File -FilePath $logFile -Encoding UTF8 -Append	    
+			$ffmpegOutput | Out-File -FilePath $logFile -Append	    
 			$exitCode = $LASTEXITCODE
 		    } catch {
 			"$($_.Exception.Message)" | Out-File -FilePath $logFile -Encoding UTF8 -Append
@@ -858,18 +995,34 @@ $btnStart.Add_Click({
 
 		    } else {
 			$fastStatus = "Fail"
-			# Only rename failed output if we're in fast-only mode
-			if ($runMode -eq "fast" -and (Test-Path $outputFile)) {
-			    $failedPath = [System.IO.Path]::ChangeExtension($outputFile, $null) + "_FAILED.mp4"
-			    Rename-Item -Path $outputFile -NewName $failedPath -Force
-			    $log += " Renamed failed output to $failedPath"
-			    $log | Out-File -FilePath $logFile -Append
-			    $status         = "Failed"  
+
+			# Remux-only mode: do not attempt re-encoding
+			if ($runMode -eq "fast") {
+
+			    # Rename partial output only if it exists
+			    if (Test-Path $outputFile) {
+				$failedPath = [System.IO.Path]::ChangeExtension(
+				    $outputFile, $null
+				) + "_FAILED.mp4"
+
+				Rename-Item -Path $outputFile `
+				    -NewName (Split-Path $failedPath -Leaf) -Force
+
+				$log += "Renamed failed output to $failedPath"
+			    }
+
+			    $status = "Failed"
+			    $fallbackStatus = "—"
+
+			    $log += "Remux failed. Re-encode skipped because remux-only mode is selected."
+			    $log | Out-File -FilePath $logFile -Encoding UTF8 -Append
+
 			    return [PSCustomObject]@{
-					Folder         = $folderName
-					FastStatus     = $fastStatus
-					FallbackStatus = $fallbackStatus
-					FinalStatus    = $status}
+				Folder         = $folderName
+				FastStatus     = $fastStatus
+				FallbackStatus = $fallbackStatus
+				FinalStatus    = $status
+			    }
 			}
 		    }
 		}
@@ -993,6 +1146,14 @@ $btnStart.Add_Click({
 	foreach ($fj in $finished) {
 	    $results = Receive-Job $fj
 
+	    Write-Host "Finished job: $($fj.Name)"
+	    Write-Host "Job state: $($fj.State)"
+	    Write-Host "Result count: $(@($results).Count)"
+
+	    $results | ForEach-Object {
+		Write-Host "Result: Folder=$($_.Folder); Fast=$($_.FastStatus); Fallback=$($_.FallbackStatus); Final=$($_.FinalStatus)"
+	    }
+	    
 	    # assume the last object has the FinalStatus
 	    $r = $results[-1]
 	    # foreach ($r in $results) {

@@ -379,11 +379,6 @@ if ([string]::IsNullOrWhiteSpace($DefaultVideoDir)) {
     $DefaultVideoDir = "D:\Desktop\Tablo\rec" 
 }   
 
-if ([string]::IsNullOrWhiteSpace($DefaultVideoQuality)) {
-    $DefaultVideoQuality = "23"
-}
-
-
 # --- Encoding Profiles ---
 $profiles = @{
     "Fast + Compatible" = @{
@@ -783,19 +778,34 @@ $form.Controls.Add($groupEnc)
 
 $topgrp = $topstrtgrp
 
-# Video Quality Label & Textbox
-$textboxVidQual , $labelVidQual  = Add-InputRow $form "Video Quality (CRF, 15-30):"   $topgrp "textbox"
-$textboxVidQual.Width = 30
-$textboxVidQual.Left = $labelLeft + $labelVidQual.Width 
-$textboxVidQual.Text = $DefaultVideoQuality
-
 # Video Profile
 $comboProfile , $labelProfile  = Add-InputRow $form "Video Profile:"   $topgrp "combobox"
-$labelProfile.Left = $global:labelLeft2
-$comboProfile.Left = $global:labelLeft2 + $labelProfile.Width
+$labelProfile.Left = $global:labelLeft
+$comboProfile.Left = $labelLeft + $labelProfile.Width 
 $comboProfile.Size     = New-Object System.Drawing.Size(250, 30)
 $comboProfile.Items.AddRange([string[]]$profiles.Keys)
 $comboProfile.SelectedItem = $DefaultProfileName
+
+# Video Quality Label & ComboBox
+$comboVidQual, $labelVidQual = Add-InputRow $form "Video Quality override (CRF):" $topgrp "combobox"
+$comboVidQual.Width = 60
+$labelVidQual.Left = $global:labelLeft2 + 100
+$comboVidQual.Left = $global:labelLeft2 + 100 + $labelVidQual.Width
+# Add blank option and values 15-30
+$comboVidQual.Items.Add(" ") | Out-Null
+foreach ($quality in 15..30) {
+    $comboVidQual.Items.Add($quality.ToString()) | Out-Null
+}
+
+# Set default selection
+if ($null -eq $DefaultVideoQuality -or
+    [string]::IsNullOrWhiteSpace([string]$DefaultVideoQuality)) {
+
+    $comboVidQual.SelectedIndex = 0
+}
+else {
+    $comboVidQual.SelectedItem = $DefaultVideoQuality.ToString()
+}
 
 $topgrp = (1*$spacing) + $topstrtgrp
 
@@ -808,14 +818,14 @@ $comboBoxPreset.SelectedItem = $DefaultPresetValue
 
 # Label audio override
 $comboBoxAudio , $labelAudio  = Add-InputRow $form  "Audio Override:"   $topgrp "combobox"
-$labelAudio.Left = $global:labelLeft2
-$comboBoxAudio.Left = $global:labelLeft2 + $labelAudio.Width
+$labelAudio.Left = $global:labelLeft2 + 100
+$comboBoxAudio.Left = $global:labelLeft2 + $labelAudio.Width + 100
 $comboBoxAudio.Size = New-Object System.Drawing.Size(250,30)
 $comboBoxAudio.Items.AddRange([string[]]$audioOverride.Keys)
 $comboBoxAudio.SelectedItem = $DefaultAudioName
 
 
-$groupEnc.Controls.Add($textboxVidQual)
+$groupEnc.Controls.Add($comboVidQual)
 $groupEnc.Controls.Add($labelVidQual)
 $groupEnc.Controls.Add($comboProfile)
 $groupEnc.Controls.Add($labelProfile)
@@ -1112,7 +1122,7 @@ $btnStart.Add_Click({
 
     # --- Read inputs directly from GUI ---
     $videoDir			    = $textboxVideoDir.Text.Trim()
-    $global:videoQuality	    = $textboxVidQual.Text.Trim()
+    $global:videoQuality	    = $comboVidQual.SelectedItem.ToString().Trim()
     $global:maxTempFilesWaiting	    = [int]$textboxMaxJobs.Text 
     $global:runMode		    = $runModeDisplayMap[$comboBoxRunMode.Text]
     
@@ -1192,11 +1202,24 @@ $btnStart.Add_Click({
         return
     }
 
-    if (-not [int]::TryParse($global:videoQuality, [ref]$null) -or
-        [int]$global:videoQuality -lt 15 -or [int]$global:videoQuality -gt 30) {
-	Show-Alert -Title "Invalid Input"-Message "Please enter a valid Video Quality (CRF) number between 15 and 30."
-        $form.DialogResult = [System.Windows.Forms.DialogResult]::None
-	return
+
+    # Validate Video Quality only when a value was entered
+    if (-not [string]::IsNullOrWhiteSpace($global:videoQuality) -and
+	$global:videoQuality -ne '0') {
+
+	$parsedQuality = 0
+
+	if (-not [int]::TryParse(
+		[string]$global:videoQuality,
+		[ref]$parsedQuality
+	    ) -or
+	    $parsedQuality -lt 15 -or
+	    $parsedQuality -gt 30) {
+
+	    Show-Alert -Title "Invalid Input" -Message "Please enter a valid Video Quality (CRF) number between 15 and 30."
+	    $form.DialogResult = [System.Windows.Forms.DialogResult]::None
+	    return
+	}
     }
 
     $settings = Import-Settings
@@ -1421,7 +1444,13 @@ $btnStart.Add_Click({
 	    }
 
 	    $audioBitrate  = $encodingProfile.Audio.Bitrate
-	    $videoQuality  = $encodingProfile.Video.Quality
+
+	    # check for video qual override
+	    if ([string]::IsNullOrWhiteSpace($global:videoQuality) -or
+		$global:videoQuality -eq '0') {
+
+		$videoQuality  = $encodingProfile.Video.Quality
+	    }
 
 	    # see if audio override parameters  video parameters were selected for ffmpeg encode
 	    $audioChannels = ""
