@@ -44,10 +44,6 @@ if using MCEbuddy, FFmpeg or Handbrake.
 
 
 
- 
 
-
-
-of both Tablo.db database and Tablo Video folder.  
 
 
