@@ -41,9 +41,3 @@ a match, then renames the folder with the data associated with index in tablo.db
 
 The remaining menu options are then used to convert the files, these can be chosen depending on
 if using MCEbuddy, FFmpeg or Handbrake. 
-
-
-
-
-
-
